@@ -1,0 +1,43 @@
+name: Retrain Model
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          pip install pandas
+          pip install scikit-learn
+          pip install mlflow
+          pip install matplotlib
+          pip install seaborn
+          pip install joblib
+
+      - name: Train Model
+        run: |
+          cd MLProject
+          python modelling.py
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: |
+            MLProject/artifacts/
+            MLProject/confusion_matrix.png
+            MLProject/classification_report.txt
