@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -21,21 +20,17 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install pandas
-          pip install scikit-learn
           pip install mlflow
-          pip install matplotlib
-          pip install seaborn
-          pip install joblib
-      - name: Train Model
+
+      - name: Run MLflow Project
         run: |
-          cd MLProject
-          python modelling.py
+          mlflow run MLProject --no-conda
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: trained-model
           path: |
             MLProject/artifacts/
-            MLProject/confusion_matrix.png
-            MLProject/classification_report.txt
+            MLProject/*.png
+            MLProject/*.txt
