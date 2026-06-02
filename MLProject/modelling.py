@@ -15,16 +15,12 @@ from sklearn.metrics import (
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# ============ INI YANG PALING PENTING ============
-# Set tracking URI ke local directory
-# Buat di dalam folder MLProject agar mudah diakses
-MLFLOW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mlruns")
-os.makedirs(MLFLOW_DIR, exist_ok=True)
-mlflow.set_tracking_uri(f"file:{MLFLOW_DIR}")
-# =================================================
-
-# Lokasi folder modelling.py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MLFLOW_DIR = os.path.join(BASE_DIR, "mlruns")
+os.makedirs(MLFLOW_DIR, exist_ok=True)
+mlflow.set_tracking_uri(f"file://{MLFLOW_DIR}")  
+
+print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
 
 # Membuat folder artifacts
 ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
@@ -55,26 +51,42 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 print(f"Training data: {X_train.shape}, Test data: {X_test.shape}")
 
-# Coba buat experiment jika belum ada
+# Set experiment dengan penanganan error yang lebih baik
+experiment_name = "Heart Disease Training"
 try:
-    mlflow.create_experiment("Heart Disease Training")
-except:
-    pass  # Experiment mungkin sudah ada
-
-# Set experiment
-mlflow.set_experiment("Heart Disease Training")
-
-# Aktifkan autolog
-mlflow.sklearn.autolog()
+    # Coba dapatkan experiment
+    experiment = mlflow.get_experiment_by_name(experiment_name)
+    if experiment is None:
+        # Buat experiment baru
+        experiment_id = mlflow.create_experiment(experiment_name)
+        print(f"Created new experiment: {experiment_name} with ID: {experiment_id}")
+    else:
+        experiment_id = experiment.experiment_id
+        print(f"Using existing experiment: {experiment_name} with ID: {experiment_id}")
+    
+    # Set experiment
+    mlflow.set_experiment(experiment_name)
+except Exception as e:
+    print(f"Error setting experiment: {e}")
+    # Fallback: gunakan default experiment
+    print("Using default experiment")
+    experiment_id = "0"
+    mlflow.set_experiment(experiment_name)
 
 # Training model
-with mlflow.start_run():
-
+with mlflow.start_run() as run:
+    print(f"Run ID: {run.info.run_id}")
+    print(f"Experiment ID: {run.info.experiment_id}")
+    
     model = RandomForestClassifier(
         n_estimators=100,
         random_state=42
     )
 
+    # Log parameter
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_param("random_state", 42)
+    
     model.fit(X_train, y_train)
 
     # Prediksi
@@ -83,6 +95,9 @@ with mlflow.start_run():
     # Evaluasi
     accuracy = accuracy_score(y_test, y_pred)
     print(f"Accuracy: {accuracy:.4f}")
+    
+    # Log metric
+    mlflow.log_metric("accuracy", accuracy)
 
     # Simpan model
     model_path = os.path.join(ARTIFACT_DIR, "best_model.pkl")
@@ -112,5 +127,8 @@ with mlflow.start_run():
     mlflow.log_artifact(cm_path)
     mlflow.log_artifact(report_path)
     mlflow.log_artifact(model_path)
+    
+    # Log model menggunakan MLflow
+    mlflow.sklearn.log_model(model, "model")
 
 print("Training selesai!")

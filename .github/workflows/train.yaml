@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: 
 
 jobs:
   train:
@@ -20,17 +21,29 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install mlflow==1.30.0 pandas scikit-learn matplotlib seaborn joblib
+          pip install --upgrade pip
+          pip install mlflow==2.5.0 pandas scikit-learn matplotlib seaborn joblib
+
+      - name: List files for debugging
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Files in repository:"
+          ls -la
+          echo "MLProject directory:"
+          ls -la MLProject/ || echo "MLProject directory not found"
 
       - name: Run MLflow Project
         run: |
-          mlflow run MLProject --no-conda
+          # Gunakan env-manager=local sebagai pengganti --no-conda
+          mlflow run . --env-manager=local
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: trained-model
           path: |
-            MLProject/artifacts/
-            MLProject/*.png
-            MLProject/*.txt
+            mlruns/
+            artifacts/
+            *.png
+            *.txt
