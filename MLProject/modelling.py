@@ -15,18 +15,22 @@ from sklearn.metrics import (
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# ============ SETUP MLFLOW ============
+# Set tracking URI ke local directory di dalam folder MLProject
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MLFLOW_DIR = os.path.join(BASE_DIR, "mlruns")
 os.makedirs(MLFLOW_DIR, exist_ok=True)
-mlflow.set_tracking_uri(f"file://{MLFLOW_DIR}")  
+mlflow.set_tracking_uri(f"file://{MLFLOW_DIR}")
 
 print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
+print(f"Working directory: {BASE_DIR}")
+# =======================================
 
 # Membuat folder artifacts
 ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
 os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
-# Load Dataset
+# Load Dataset (pastikan file ada di folder yang sama)
 DATA_PATH = os.path.join(BASE_DIR, "heart_processed.csv")
 
 # Cek apakah file dataset ada
@@ -51,26 +55,20 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 print(f"Training data: {X_train.shape}, Test data: {X_test.shape}")
 
-# Set experiment dengan penanganan error yang lebih baik
+# Set experiment
 experiment_name = "Heart Disease Training"
 try:
-    # Coba dapatkan experiment
     experiment = mlflow.get_experiment_by_name(experiment_name)
     if experiment is None:
-        # Buat experiment baru
         experiment_id = mlflow.create_experiment(experiment_name)
         print(f"Created new experiment: {experiment_name} with ID: {experiment_id}")
     else:
         experiment_id = experiment.experiment_id
         print(f"Using existing experiment: {experiment_name} with ID: {experiment_id}")
     
-    # Set experiment
     mlflow.set_experiment(experiment_name)
 except Exception as e:
     print(f"Error setting experiment: {e}")
-    # Fallback: gunakan default experiment
-    print("Using default experiment")
-    experiment_id = "0"
     mlflow.set_experiment(experiment_name)
 
 # Training model
