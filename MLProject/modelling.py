@@ -1,9 +1,6 @@
 import os
 import joblib
 import pandas as pd
-import mlflow
-import mlflow.sklearn
-
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
@@ -11,14 +8,8 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report
 )
-
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-# ============ TAMBAHKAN INI ============
-# Set MLflow tracking URI ke local file system (bukan database)
-mlflow.set_tracking_uri("file:./mlruns")
-# ========================================
 
 # Lokasi folder modelling.py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,7 +21,12 @@ os.makedirs(ARTIFACT_DIR, exist_ok=True)
 # Load Dataset
 DATA_PATH = os.path.join(BASE_DIR, "heart_processed.csv")
 
+# Cek apakah file dataset ada
+if not os.path.exists(DATA_PATH):
+    raise FileNotFoundError(f"Dataset tidak ditemukan di: {DATA_PATH}")
+
 df = pd.read_csv(DATA_PATH)
+print(f"Dataset loaded: {df.shape}")
 
 # Pisahkan fitur dan target
 X = df.drop("target", axis=1)
@@ -45,55 +41,48 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y
 )
 
-# Nama experiment MLflow
-mlflow.set_experiment("Heart Disease Training")
-
-# Aktifkan autolog
-mlflow.sklearn.autolog()
+print(f"Training data: {X_train.shape}, Test data: {X_test.shape}")
 
 # Training model
-with mlflow.start_run():
+model = RandomForestClassifier(
+    n_estimators=100,
+    random_state=42
+)
 
-    model = RandomForestClassifier(
-        n_estimators=100,
-        random_state=42
-    )
+model.fit(X_train, y_train)
 
-    model.fit(X_train, y_train)
+# Prediksi
+y_pred = model.predict(X_test)
 
-    # Prediksi
-    y_pred = model.predict(X_test)
+# Evaluasi
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.4f}")
 
-    # Evaluasi
-    accuracy = accuracy_score(y_test, y_pred)
+# Simpan model
+model_path = os.path.join(ARTIFACT_DIR, "best_model.pkl")
+joblib.dump(model, model_path)
+print(f"Model saved to {model_path}")
 
-    print(f"Accuracy: {accuracy:.4f}")
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
 
-    # Simpan model
-    model_path = os.path.join(ARTIFACT_DIR, "best_model.pkl")
-    joblib.dump(model, model_path)
+plt.figure(figsize=(6, 4))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
 
-    # Confusion Matrix
-    cm = confusion_matrix(y_test, y_pred)
+cm_path = os.path.join(BASE_DIR, "confusion_matrix.png")
+plt.savefig(cm_path, bbox_inches="tight")
+plt.close()
+print(f"Confusion matrix saved to {cm_path}")
 
-    plt.figure(figsize=(6, 4))
-    sns.heatmap(cm, annot=True, fmt="d")
-    plt.title("Confusion Matrix")
+# Classification Report
+report = classification_report(y_test, y_pred)
 
-    cm_path = os.path.join(BASE_DIR, "confusion_matrix.png")
-    plt.savefig(cm_path, bbox_inches="tight")
-    plt.close()
+report_path = os.path.join(BASE_DIR, "classification_report.txt")
+with open(report_path, "w") as f:
+    f.write(report)
+print(f"Classification report saved to {report_path}")
 
-    # Classification Report
-    report = classification_report(y_test, y_pred)
-
-    report_path = os.path.join(BASE_DIR, "classification_report.txt")
-    with open(report_path, "w") as f:
-        f.write(report)
-
-    # Log artifact ke MLflow
-    mlflow.log_artifact(cm_path)
-    mlflow.log_artifact(report_path)
-    mlflow.log_artifact(model_path)
-
-print("Training selesai.")
+print("Training selesai!")
