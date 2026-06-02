@@ -20,23 +20,15 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install mlflow==1.30.0 pandas scikit-learn matplotlib seaborn joblib
+          pip install mlflow==1.30.0 pandas scikit-learn
 
-      - name: Create MLflow Directory
+      - name: Remove Old MLflow Data
         run: |
-          mkdir -p mlruns
+          rm -rf mlruns
+          mkdir mlruns
 
       - name: Run MLflow Project
         env:
           MLFLOW_TRACKING_URI: file:./mlruns
         run: |
           mlflow run MLProject --env-manager=local
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: trained-model
-          path: |
-            MLProject/artifacts/
-            MLProject/confusion_matrix.png
-            MLProject/classification_report.txt

@@ -2,7 +2,6 @@ name: heart-env
 
 channels:
   - conda-forge
-  - defaults
 
 dependencies:
   - python=3.10
@@ -10,7 +9,4 @@ dependencies:
   - pip:
       - pandas
       - scikit-learn
-      - mlflow
-      - matplotlib
-      - seaborn
-      - joblib
+      - mlflow==1.30.0
