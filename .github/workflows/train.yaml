@@ -10,27 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Conda
-        uses: conda-incubator/setup-miniconda@v3
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          auto-update-conda: true
           python-version: "3.10"
-          environment-file: MLProject/conda.yaml
-          activate-environment: heart-env
 
-      - name: Run MLflow Project
-        shell: bash -l {0}
+      - name: Install Dependencies
         run: |
-          mlflow run MLProject --no-conda
-
+          pip install pandas
+          pip install scikit-learn
+          pip install mlflow
+          pip install matplotlib
+          pip install seaborn
+          pip install joblib
+      - name: Train Model
+        run: |
+          cd MLProject
+          python modelling.py
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: trained-model
           path: |
             MLProject/artifacts/
-            MLProject/*.png
-            MLProject/*.txt
+            MLProject/confusion_matrix.png
+            MLProject/classification_report.txt
