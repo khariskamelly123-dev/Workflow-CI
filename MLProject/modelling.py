@@ -16,11 +16,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # ============ SETUP MLFLOW ============
-# Set tracking URI ke local directory di dalam folder MLProject
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MLFLOW_DIR = os.path.join(BASE_DIR, "mlruns")
 os.makedirs(MLFLOW_DIR, exist_ok=True)
 mlflow.set_tracking_uri(f"file://{MLFLOW_DIR}")
+
+# End any existing run
+mlflow.end_run()
 
 print(f"MLflow Tracking URI: {mlflow.get_tracking_uri()}")
 print(f"Working directory: {BASE_DIR}")
@@ -30,10 +32,9 @@ print(f"Working directory: {BASE_DIR}")
 ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
 os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
-# Load Dataset (pastikan file ada di folder yang sama)
+# Load Dataset
 DATA_PATH = os.path.join(BASE_DIR, "heart_processed.csv")
 
-# Cek apakah file dataset ada
 if not os.path.exists(DATA_PATH):
     raise FileNotFoundError(f"Dataset tidak ditemukan di: {DATA_PATH}")
 
@@ -71,7 +72,7 @@ except Exception as e:
     print(f"Error setting experiment: {e}")
     mlflow.set_experiment(experiment_name)
 
-# Training model
+# Start run
 with mlflow.start_run() as run:
     print(f"Run ID: {run.info.run_id}")
     print(f"Experiment ID: {run.info.experiment_id}")
@@ -81,23 +82,24 @@ with mlflow.start_run() as run:
         random_state=42
     )
 
-    # Log parameter
+    # Log parameters
     mlflow.log_param("n_estimators", 100)
     mlflow.log_param("random_state", 42)
     
+    # Train model
     model.fit(X_train, y_train)
 
-    # Prediksi
+    # Predict
     y_pred = model.predict(X_test)
 
-    # Evaluasi
+    # Evaluate
     accuracy = accuracy_score(y_test, y_pred)
     print(f"Accuracy: {accuracy:.4f}")
     
     # Log metric
     mlflow.log_metric("accuracy", accuracy)
 
-    # Simpan model
+    # Save model
     model_path = os.path.join(ARTIFACT_DIR, "best_model.pkl")
     joblib.dump(model, model_path)
 
@@ -121,12 +123,12 @@ with mlflow.start_run() as run:
     with open(report_path, "w") as f:
         f.write(report)
 
-    # Log artifact ke MLflow
+    # Log artifacts
     mlflow.log_artifact(cm_path)
     mlflow.log_artifact(report_path)
     mlflow.log_artifact(model_path)
     
-    # Log model menggunakan MLflow
+    # Log model
     mlflow.sklearn.log_model(model, "model")
 
 print("Training selesai!")
