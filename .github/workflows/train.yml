@@ -18,32 +18,13 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install MLflow
+      - name: Install Dependencies
         run: |
-          pip install mlflow
-
-      - name: Debug - List all files
-        run: |
-          echo "=== Root directory ==="
-          ls -la
-          echo "=== MLProject directory ==="
-          ls -la MLProject/
-          echo "=== Check if MLproject file exists ==="
-          cat MLProject/MLproject
-          echo "=== Check if CSV exists ==="
-          if [ -f "MLProject/heart_processed.csv" ]; then
-            echo " CSV file found!"
-            head -3 MLProject/heart_processed.csv
-          else
-            echo " CSV file NOT found in MLProject/"
-            echo "Looking for CSV in root:"
-            ls -la *.csv 2>/dev/null || echo "No CSV in root"
-          fi
+          pip install mlflow pandas scikit-learn matplotlib seaborn joblib
 
       - name: Run MLflow Project
         run: |
-          cd MLProject
-          mlflow run . --no-conda
+          mlflow run MLProject --env-manager=local
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
