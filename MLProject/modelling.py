@@ -39,12 +39,14 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 print(f"Training data: {X_train.shape}, Test data: {X_test.shape}")
 
-# ============ EXPERIMENT SETUP ============
-experiment_name = "Heart Disease Training"
-mlflow.set_experiment(experiment_name)
-
-# Use existing run ID injected by `mlflow run`, or create a new one
+# ============ EXPERIMENT / RUN SETUP ============
+# When invoked via `mlflow run .`, MLFLOW_RUN_ID is already set.
+# In that case, do NOT call set_experiment() — the run already belongs
+# to the correct experiment. Only set the experiment when running standalone.
 active_run_id = os.environ.get("MLFLOW_RUN_ID")
+
+if not active_run_id:
+    mlflow.set_experiment("Heart Disease Training")
 
 with mlflow.start_run(run_id=active_run_id) as run:
     print(f"Run ID: {run.info.run_id}")
