@@ -15,6 +15,11 @@ from sklearn.metrics import (
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# ============ TAMBAHKAN INI ============
+# Set MLflow tracking URI ke local file system (bukan database)
+mlflow.set_tracking_uri("file:./mlruns")
+# ========================================
+
 # Lokasi folder modelling.py
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,10 +28,7 @@ ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
 os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
 # Load Dataset
-DATA_PATH = os.path.join(
-    BASE_DIR,
-    "heart_processed.csv"
-)
+DATA_PATH = os.path.join(BASE_DIR, "heart_processed.csv")
 
 df = pd.read_csv(DATA_PATH)
 
@@ -63,74 +65,35 @@ with mlflow.start_run():
     y_pred = model.predict(X_test)
 
     # Evaluasi
-    accuracy = accuracy_score(
-        y_test,
-        y_pred
-    )
+    accuracy = accuracy_score(y_test, y_pred)
 
     print(f"Accuracy: {accuracy:.4f}")
 
     # Simpan model
-    model_path = os.path.join(
-        ARTIFACT_DIR,
-        "best_model.pkl"
-    )
-
-    joblib.dump(
-        model,
-        model_path
-    )
+    model_path = os.path.join(ARTIFACT_DIR, "best_model.pkl")
+    joblib.dump(model, model_path)
 
     # Confusion Matrix
-    cm = confusion_matrix(
-        y_test,
-        y_pred
-    )
+    cm = confusion_matrix(y_test, y_pred)
 
     plt.figure(figsize=(6, 4))
-
-    sns.heatmap(
-        cm,
-        annot=True,
-        fmt="d"
-    )
-
+    sns.heatmap(cm, annot=True, fmt="d")
     plt.title("Confusion Matrix")
 
-    cm_path = os.path.join(
-        BASE_DIR,
-        "confusion_matrix.png"
-    )
-
-    plt.savefig(
-        cm_path,
-        bbox_inches="tight"
-    )
-
+    cm_path = os.path.join(BASE_DIR, "confusion_matrix.png")
+    plt.savefig(cm_path, bbox_inches="tight")
     plt.close()
 
     # Classification Report
-    report = classification_report(
-        y_test,
-        y_pred
-    )
+    report = classification_report(y_test, y_pred)
 
-    report_path = os.path.join(
-        BASE_DIR,
-        "classification_report.txt"
-    )
-
-    with open(
-        report_path,
-        "w"
-    ) as f:
+    report_path = os.path.join(BASE_DIR, "classification_report.txt")
+    with open(report_path, "w") as f:
         f.write(report)
 
     # Log artifact ke MLflow
     mlflow.log_artifact(cm_path)
-
     mlflow.log_artifact(report_path)
-
     mlflow.log_artifact(model_path)
 
 print("Training selesai.")
