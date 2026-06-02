@@ -1,6 +1,7 @@
 import os
 import joblib
 import pandas as pd
+import mlflow
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
@@ -11,28 +12,37 @@ from sklearn.metrics import (
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Lokasi folder modelling.py
+# =========================
+# Setup MLflow
+# =========================
+mlflow.set_tracking_uri("file:./mlruns")
+mlflow.set_experiment("Heart Disease Experiment")
+
+# =========================
+# Setup Folder
+# =========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Membuat folder artifacts
 ARTIFACT_DIR = os.path.join(BASE_DIR, "artifacts")
 os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
+# =========================
 # Load Dataset
+# =========================
 DATA_PATH = os.path.join(BASE_DIR, "heart_processed.csv")
 
-# Cek apakah file dataset ada
 if not os.path.exists(DATA_PATH):
     raise FileNotFoundError(f"Dataset tidak ditemukan di: {DATA_PATH}")
 
 df = pd.read_csv(DATA_PATH)
 print(f"Dataset loaded: {df.shape}")
 
-# Pisahkan fitur dan target
+# =========================
+# Split Feature dan Target
+# =========================
 X = df.drop("target", axis=1)
 y = df["target"]
 
-# Split data
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -41,48 +51,81 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y
 )
 
-print(f"Training data: {X_train.shape}, Test data: {X_test.shape}")
+print(f"Training data: {X_train.shape}")
+print(f"Testing data : {X_test.shape}")
 
-# Training model
-model = RandomForestClassifier(
-    n_estimators=100,
-    random_state=42
-)
+# =========================
+# Training dengan MLflow
+# =========================
+with mlflow.start_run():
 
-model.fit(X_train, y_train)
+    model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=42
+    )
 
-# Prediksi
-y_pred = model.predict(X_test)
+    model.fit(X_train, y_train)
 
-# Evaluasi
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {accuracy:.4f}")
+    y_pred = model.predict(X_test)
 
-# Simpan model
-model_path = os.path.join(ARTIFACT_DIR, "best_model.pkl")
-joblib.dump(model, model_path)
-print(f"Model saved to {model_path}")
+    accuracy = accuracy_score(y_test, y_pred)
 
-# Confusion Matrix
-cm = confusion_matrix(y_test, y_pred)
+    print(f"Accuracy: {accuracy:.4f}")
 
-plt.figure(figsize=(6, 4))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-plt.title("Confusion Matrix")
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
+    # Log parameter
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_param("random_state", 42)
 
-cm_path = os.path.join(BASE_DIR, "confusion_matrix.png")
-plt.savefig(cm_path, bbox_inches="tight")
-plt.close()
-print(f"Confusion matrix saved to {cm_path}")
+    # Log metric
+    mlflow.log_metric("accuracy", accuracy)
 
-# Classification Report
-report = classification_report(y_test, y_pred)
+    # =========================
+    # Simpan Model
+    # =========================
+    model_path = os.path.join(ARTIFACT_DIR, "best_model.pkl")
 
-report_path = os.path.join(BASE_DIR, "classification_report.txt")
-with open(report_path, "w") as f:
-    f.write(report)
-print(f"Classification report saved to {report_path}")
+    joblib.dump(model, model_path)
+
+    print(f"Model saved to {model_path}")
+
+    mlflow.log_artifact(model_path)
+
+    # =========================
+    # Confusion Matrix
+    # =========================
+    cm = confusion_matrix(y_test, y_pred)
+
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+
+    plt.title("Confusion Matrix")
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+
+    cm_path = os.path.join(BASE_DIR, "confusion_matrix.png")
+
+    plt.savefig(cm_path, bbox_inches="tight")
+    plt.close()
+
+    print(f"Confusion Matrix saved to {cm_path}")
+
+    mlflow.log_artifact(cm_path)
+
+    # =========================
+    # Classification Report
+    # =========================
+    report = classification_report(y_test, y_pred)
+
+    report_path = os.path.join(
+        BASE_DIR,
+        "classification_report.txt"
+    )
+
+    with open(report_path, "w") as f:
+        f.write(report)
+
+    print(f"Classification Report saved to {report_path}")
+
+    mlflow.log_artifact(report_path)
 
 print("Training selesai!")

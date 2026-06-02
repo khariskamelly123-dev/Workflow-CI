@@ -22,9 +22,15 @@ jobs:
         run: |
           pip install mlflow==1.30.0 pandas scikit-learn matplotlib seaborn joblib
 
-      - name: Run MLflow Project
+      - name: Create MLflow Directory
         run: |
-          mlflow run MLProject --no-conda
+          mkdir -p mlruns
+
+      - name: Run MLflow Project
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+        run: |
+          mlflow run MLProject --env-manager=local
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -32,5 +38,5 @@ jobs:
           name: trained-model
           path: |
             MLProject/artifacts/
-            MLProject/*.png
-            MLProject/*.txt
+            MLProject/confusion_matrix.png
+            MLProject/classification_report.txt
